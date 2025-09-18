@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Routes, Route, Link } from 'react-router-dom'
+import { Routes, Route, Link, useMatch } from 'react-router-dom'
 const Menu = () => {
   const padding = {
     paddingRight: 5
@@ -13,11 +13,27 @@ const Menu = () => {
   )
 }
 
+const Anecdote = (props) => {
+	return (
+		<div>
+			<h2>{props.anecdote.content} by {props.anecdote.author}</h2>
+
+			<p>has {props.anecdote.votes} votes</p>
+
+			<p>for more info see <Link to={props.anecdote.info}>{props.anecdote.info}</Link></p>
+		</div>
+	)
+}
+
 const AnecdoteList = ({ anecdotes }) => (
   <div>
     <h2>Anecdotes</h2>
     <ul>
-      {anecdotes.map(anecdote => <li key={anecdote.id} >{anecdote.content}</li>)}
+      {anecdotes.map(anecdote =>
+	  	<li key={anecdote.id} >
+			<Link to={`/anecdotes/${anecdote.id}`}>{anecdote.content}</Link>
+		</li>
+	)}
     </ul>
   </div>
 )
@@ -100,6 +116,10 @@ const App = () => {
       id: 2
     }
   ])
+  const match = useMatch('/anecdotes/:id')
+	const anecdote = match
+		? anecdotes.find(a => a.id === Number(match.params.id))
+		: null
 
   const [notification, setNotification] = useState('')
 
@@ -134,6 +154,8 @@ const App = () => {
 				<Route path='/create' element={<CreateNew addNew={addNew} />} />
 
 				<Route path='/about' element={<About />} />
+
+				<Route path='/anecdotes/:id' element={<Anecdote anecdote={anecdote} vote={vote} />} />
 			</Routes>
 
 			<Footer />
