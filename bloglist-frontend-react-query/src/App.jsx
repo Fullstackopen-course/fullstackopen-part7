@@ -7,57 +7,89 @@ import Button from './components/Button'
 import BlogForm from './components/BlogForm'
 import Notification from './components/Notification'
 import Toggable from './components/Toggable'
+import {
+	useBlogDispatch,
+	useBlogValue,
+	useNotificationDispatch,
+	useUserDispatch,
+	useUserValue,
+} from './contexts/AppContext'
 
 const App = () => {
-	const [blogs, setBlogs] = useState([])
-	const [user, setUser] = useState(null)
-	const [notification, setNotification] = useState(null)
+	const user = useUserValue()
+	const setUser = useUserDispatch()
+	const setNotification = useNotificationDispatch()
+	const blogs = useBlogValue()
+	const blogDispatch = useBlogDispatch()
 
 	const handleLogin = async (credentials) => {
 		try {
 			const user = await loginService.login(credentials)
 			window.localStorage.setItem('user', JSON.stringify(user))
-			setUser(user)
+			setUser({ type: 'SET_USER', payload: user })
 			blogService.setToken(user.token)
 		} catch (error) {
-			setNotification({
-				type: 'error',
-				message: `an error ocurred: ${error.response.data.error}`,
-			})
+			setNotification(
+				{
+					type: 'SET_NOTIFICATION',
+					payload: {
+						type: 'error',
+						message: `an error ocurred: ${error.response.data.error}`,
+					},
+				}
+			)
 			setTimeout(() => {
-				setNotification(null)
+				setNotification(
+					{
+						type: 'REMOVE_NOTIFICATION',
+					}
+				)
 			}, 5000)
 		}
 	}
 
 	const handleLogout = () => {
 		window.localStorage.removeItem('user')
-		setUser(null)
+		setUser({ type: 'REMOVE_USER' })
 		blogService.setToken(null)
 	}
 
 	const handleCreateBlog = async (blog) => {
 		try {
 			const createdBlog = await blogService.create(blog)
-			setBlogs(blogs.concat(createdBlog).sort((b1, b2) => b2.likes - b1.likes))
-			setNotification({
-				type: 'success',
-				message: `a new blog ${createdBlog.title} by ${createdBlog.author} added`,
-			})
+			blogDispatch({ type: 'CREATE_BLOG', payload: createdBlog })
+			setNotification(
+				{
+					type: 'SET_NOTIFICATION',
+					payload: {
+						type: 'success',
+						message: `a new blog ${createdBlog.title} by ${createdBlog.author} added`,
+					}
+				}
+			)
 			setTimeout(() => {
-				setNotification(null)
+				setNotification({
+					type: 'REMOVE_NOTIFICATION',
+				})
 			}, 5000)
 		} catch ({
 			response: {
 				data: { error },
 			},
 		}) {
-			setNotification({
-				type: 'error',
-				message: `an error ocurred: ${error}`,
-			})
+			setNotification(
+				{
+					type: 'SET_NOTIFICATION',
+					payload: {
+						type: 'error',
+						message: `an error ocurred: ${error}`,
+					}
+				}
+			)
 			setTimeout(() => {
-				setNotification(null)
+				setNotification({
+					type: 'REMOVE_NOTIFICATION',
+				})
 			}, 5000)
 		}
 	}
@@ -68,20 +100,25 @@ const App = () => {
 				...blog,
 				likes: blog.likes + 1,
 			})
-			setBlogs(
-				blogs.map((b) => (b.id !== blog.id ? b : updatedBlog)).sort((b1, b2) => b2.likes - b1.likes)
-			)
+			blogDispatch({ type: 'UPDATE_BLOG', payload: updatedBlog })
 		} catch ({
 			response: {
 				data: { error },
 			},
 		}) {
-			setNotification({
-				type: 'error',
-				message: `an error ocurred: ${error}`,
-			})
+			setNotification(
+				{
+					type: 'SET_NOTIFICATION',
+					payload: {
+						type: 'error',
+						message: `an error ocurred: ${error}`,
+					}
+				}
+			)
 			setTimeout(() => {
-				setNotification(null)
+				setNotification({
+					type: 'REMOVE_NOTIFICATION',
+				})
 			}, 5000)
 		}
 	}
@@ -90,18 +127,25 @@ const App = () => {
 		if (window.confirm(`Remove blog ${blog.title} by ${blog.author}`)) {
 			try {
 				await blogService.remove(blog)
-				setBlogs(blogs.filter((b) => b.id !== blog.id).sort((b1, b2) => b2.likes - b1.likes))
+				blogDispatch({ type: 'REMOVE_BLOG', payload: blog.id })
 			} catch ({
 				response: {
 					data: { error },
 				},
 			}) {
-				setNotification({
-					type: 'error',
-					message: `an error ocurred: ${error}`,
-				})
+				setNotification(
+					{
+						type: 'SET_NOTIFICATION',
+						payload: {
+							type: 'error',
+							message: `an error ocurred: ${error}`,
+						}
+					}
+				)
 				setTimeout(() => {
-					setNotification(null)
+					setNotification({
+						type: 'REMOVE_NOTIFICATION',
+					})
 				}, 5000)
 			}
 		}
@@ -110,7 +154,7 @@ const App = () => {
 	useEffect(() => {
 		const fetchBlogs = async () => {
 			const blogs = await blogService.getAll()
-			setBlogs(blogs.sort((b1, b2) => b2.likes - b1.likes))
+			blogDispatch({ type: 'SET_BLOGS', payload: blogs.sort((b1, b2) => b2.likes - b1.likes) })
 		}
 
 		fetchBlogs()
@@ -120,14 +164,14 @@ const App = () => {
 		const loggedUserJSON = window.localStorage.getItem('user')
 		if (loggedUserJSON) {
 			const user = JSON.parse(loggedUserJSON)
-			setUser(user)
+			setUser({ type: 'SET_USER', payload: user })
 			blogService.setToken(user.token)
 		}
 	}, [])
 
 	return (
 		<div>
-			{notification && <Notification type={notification.type} message={notification.message} />}
+			<Notification />
 
 			{!user && <LoginForm onSubmit={handleLogin} />}
 			{user && (

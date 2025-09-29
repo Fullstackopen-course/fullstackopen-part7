@@ -1,5 +1,12 @@
-const Notification = ({ type, message }) => {
-	return <p className={`notification ${type}`}>{message}</p>
+import { useNotificationValue } from '../contexts/AppContext'
+
+const Notification = () => {
+	const notification = useNotificationValue()
+
+	return (
+		notification &&
+		<p className={`notification ${notification.type}`}>{notification.message}</p>
+	)
 }
 
 export default Notification
