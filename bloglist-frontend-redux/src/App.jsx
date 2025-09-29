@@ -1,139 +1,68 @@
-import { useState, useEffect } from 'react'
-import blogService from './services/blogs'
-import loginService from './services/login'
+import blogService from './services/blogService'
+import loginService from './services/loginService'
 import LoginForm from './components/LoginForm'
 import BlogList from './components/BlogList'
 import Button from './components/Button'
 import BlogForm from './components/BlogForm'
 import Notification from './components/Notification'
 import Toggable from './components/Toggable'
-import { useDispatch } from 'react-redux'
-import { setNotification } from './reducers/notificationReducer'
+import { useDispatch, useSelector } from 'react-redux'
+import { setNotificationWithTimeout } from './reducers/notificationReducer'
+import { removeUser, setUser } from './reducers/userReducer'
+import { useEffect } from 'react'
+import { initBlogs } from './reducers/blogReducer'
 
 const App = () => {
 	const dispatch = useDispatch()
-	const [blogs, setBlogs] = useState([])
-	const [user, setUser] = useState(null)
+	const user = useSelector((state) => state.user)
+
+	useEffect(
+		() => {
+			async function fetchBlogs() {
+				dispatch(initBlogs())
+			}
+
+			fetchBlogs()
+		}
+	)
+
+	useEffect(
+		() => {
+			const loggedUserJSON = window.localStorage.getItem('user')
+			if (loggedUserJSON) {
+				const user = JSON.parse(loggedUserJSON)
+				dispatch(setUser(user))
+				blogService.setToken(user.token)
+			}
+		},
+		[dispatch]
+	)
+
 
 	const handleLogin = async (credentials) => {
 		try {
 			const user = await loginService.login(credentials)
-			window.localStorage.setItem('user', JSON.stringify(user))
-			setUser(user)
+			dispatch(setUser(user))
 			blogService.setToken(user.token)
+			window.localStorage.setItem('user', JSON.stringify(user))
 		} catch (error) {
-			dispatch({
-				type: 'error',
-				message: `an error ocurred: ${error.response.data.error}`,
-			})
-			setTimeout(() => {
-				dispatch(null)
-			}, 5000)
+			dispatch(
+				setNotificationWithTimeout(
+					{
+						type: 'error',
+						message: `an error ocurred: ${error.response.data.error}`,
+					},
+					5
+				)
+			)
 		}
 	}
 
 	const handleLogout = () => {
-		window.localStorage.removeItem('user')
-		setUser(null)
+		dispatch(removeUser())
 		blogService.setToken(null)
+		window.localStorage.removeItem('user')
 	}
-
-	const handleCreateBlog = async (blog) => {
-		try {
-			const createdBlog = await blogService.create(blog)
-			setBlogs(blogs.concat(createdBlog).sort((b1, b2) => b2.likes - b1.likes))
-			dispatch(
-				setNotification(
-					{
-						type: 'success',
-						message: `a new blog ${createdBlog.title} by ${createdBlog.author} added`,
-					}
-				)
-			)
-			setTimeout(() => {
-				dispatch(setNotification(null))
-			}, 5000)
-		} catch ({
-			response: {
-				data: { error },
-			},
-		}) {
-			dispatch(setNotification({
-				type: 'error',
-				message: `an error ocurred: ${error}`,
-			}))
-			setTimeout(() => {
-				dispatch(setNotification(null))
-			}, 5000)
-		}
-	}
-
-	const handleUpdateBlog = async (blog) => {
-		try {
-			const updatedBlog = await blogService.update({
-				...blog,
-				likes: blog.likes + 1,
-			})
-			setBlogs(
-				blogs.map((b) => (b.id !== blog.id ? b : updatedBlog)).sort((b1, b2) => b2.likes - b1.likes)
-			)
-		} catch ({
-			response: {
-				data: { error },
-			},
-		}) {
-			dispatch(setNotification({
-				type: 'error',
-				message: `an error ocurred: ${error}`,
-			}))
-			setTimeout(() => {
-				dispatch(setNotification(null))
-			}, 5000)
-		}
-	}
-
-	const handleDeleteBlog = async (blog) => {
-		if (window.confirm(`Remove blog ${blog.title} by ${blog.author}`)) {
-			try {
-				await blogService.remove(blog)
-				setBlogs(blogs.filter((b) => b.id !== blog.id).sort((b1, b2) => b2.likes - b1.likes))
-			} catch ({
-				response: {
-					data: { error },
-				},
-			}) {
-				dispatch(
-					setNotification(
-						{
-							type: 'error',
-							message: `an error ocurred: ${error}`,
-						}
-					)
-				)
-				setTimeout(() => {
-					dispatch(setNotification(null))
-				}, 5000)
-			}
-		}
-	}
-
-	useEffect(() => {
-		const fetchBlogs = async () => {
-			const blogs = await blogService.getAll()
-			setBlogs(blogs.sort((b1, b2) => b2.likes - b1.likes))
-		}
-
-		fetchBlogs()
-	}, [])
-
-	useEffect(() => {
-		const loggedUserJSON = window.localStorage.getItem('user')
-		if (loggedUserJSON) {
-			const user = JSON.parse(loggedUserJSON)
-			setUser(user)
-			blogService.setToken(user.token)
-		}
-	}, [])
 
 	return (
 		<div>
@@ -151,15 +80,10 @@ const App = () => {
 					/>
 
 					<Toggable buttonText="create new blog">
-						<BlogForm onSubmit={handleCreateBlog} />
+						<BlogForm />
 					</Toggable>
 
-					<BlogList
-						blogs={blogs}
-						handleUpdateBlog={handleUpdateBlog}
-						handleDeleteBlog={handleDeleteBlog}
-						username={user.username}
-					/>
+					<BlogList />
 				</div>
 			)}
 		</div>

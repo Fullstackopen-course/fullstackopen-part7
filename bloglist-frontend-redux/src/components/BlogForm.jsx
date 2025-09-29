@@ -1,17 +1,55 @@
 import { useState } from 'react'
 import Button from './Button'
-const BlogForm = ({ onSubmit }) => {
+import blogService from '../services/blogService'
+import { useDispatch } from 'react-redux'
+import { createBlog } from '../reducers/blogReducer'
+import { setNotificationWithTimeout } from '../reducers/notificationReducer'
+
+const BlogForm = () => {
+	const dispatch = useDispatch()
 	const [title, setTitle] = useState('')
 	const [author, setAuthor] = useState('')
 	const [url, setUrl] = useState('')
 
-	const handleCreate = async (event) => {
+	const handleCreateBlog = async (blog) => {
+		try {
+			const createdBlog = await blogService.create(blog)
+			dispatch(createBlog(createdBlog))
+			console.log(createdBlog)
+			dispatch(
+				setNotificationWithTimeout(
+					{
+						type: 'success',
+						message: `a new blog ${createdBlog.title} by ${createdBlog.author} added`,
+					},
+					5
+				)
+			)
+		} catch ({
+			response: {
+				data: { error },
+			},
+		}) {
+			dispatch(
+				setNotificationWithTimeout(
+					{
+						type: 'error',
+						message: `an error ocurred: ${error}`,
+					},
+					5
+				)
+			)
+		}
+	}
+
+	const onSubmit = async (event) => {
 		event.preventDefault()
-		onSubmit({
+		const blogToCreate = {
 			title,
 			author,
 			url,
-		})
+		}
+		handleCreateBlog(blogToCreate)
 		setTitle('')
 		setAuthor('')
 		setUrl('')
@@ -21,7 +59,7 @@ const BlogForm = ({ onSubmit }) => {
 		<div>
 			<h2>Create new blog</h2>
 
-			<form onSubmit={handleCreate}>
+			<form onSubmit={onSubmit}>
 				<div style={{ marginBottom: 10 }}>
 					<label>
 						title

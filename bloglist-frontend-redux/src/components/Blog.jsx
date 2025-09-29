@@ -1,7 +1,56 @@
 import { useState } from 'react'
+import blogService from '../services/blogService'
+import { useDispatch, useSelector } from 'react-redux'
+import { removeBlog, updateBlog } from '../reducers/blogReducer'
+import { setNotificationWithTimeout } from '../reducers/notificationReducer'
 
-const Blog = ({ blog, handleUpdateBlog, handleDeleteBlog, username }) => {
+const Blog = ({ blog }) => {
+	const dispatch = useDispatch()
 	const [visible, setVisible] = useState(false)
+	const user = useSelector((state) => state.user)
+
+	const handleUpdateBlog = async (blog) => {
+		try {
+			const updatedBlog = await blogService.update({
+				...blog,
+				likes: blog.likes + 1,
+			})
+			dispatch(updateBlog(updatedBlog))
+		} catch ({
+			response: {
+				data: { error },
+			},
+		}) {
+			setNotificationWithTimeout(
+				{
+					type: 'error',
+					message: `an error ocurred: ${error}`,
+				},
+				5
+			)
+		}
+	}
+
+	const handleDeleteBlog = async (blog) => {
+		if (window.confirm(`Remove blog ${blog.title} by ${blog.author}`)) {
+			try {
+				await blogService.remove(blog)
+				dispatch(removeBlog(blog.id))
+			} catch ({
+				response: {
+					data: { error },
+				},
+			}) {
+				setNotificationWithTimeout(
+					{
+						type: 'error',
+						message: `an error ocurred: ${error}`,
+					},
+					5
+				)
+			}
+		}
+	}
 
 	const blogStyle = {
 		paddingTop: 10,
@@ -24,7 +73,7 @@ const Blog = ({ blog, handleUpdateBlog, handleDeleteBlog, username }) => {
 					<br />
 					{blog.author}
 					<br />
-					{username === blog.user.username && (
+					{user.username === blog.user.username && (
 						<button onClick={() => handleDeleteBlog(blog)}>remove</button>
 					)}
 				</>
