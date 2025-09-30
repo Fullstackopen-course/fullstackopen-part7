@@ -6,7 +6,12 @@ const Toggable = (props) => {
 		<div>
 			{visible && props.children}
 
-			<button onClick={() => setVisible(!visible)} style={{ marginTop: 10 }}>
+			<button
+				type="button"
+				className={`btn ${visible ? 'btn-outline-secondary' : 'btn-outline-primary'}`}
+				onClick={() => setVisible(!visible)}
+				style={{ marginTop: 10 }}
+			>
 				{visible ? 'cancel' : props.buttonText}
 			</button>
 		</div>

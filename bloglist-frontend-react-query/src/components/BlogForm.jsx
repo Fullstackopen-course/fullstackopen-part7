@@ -1,13 +1,54 @@
 import { useState } from 'react'
-import Button from './Button'
-const BlogForm = ({ onSubmit }) => {
+import blogService from '../services/blogService'
+import { useBlogDispatch, useNotificationDispatch } from '../contexts/AppContext'
+import { Button } from '@mui/material'
+const BlogForm = () => {
 	const [title, setTitle] = useState('')
 	const [author, setAuthor] = useState('')
 	const [url, setUrl] = useState('')
 
-	const handleCreate = async (event) => {
+	const blogDispatch = useBlogDispatch()
+	const setNotification = useNotificationDispatch()
+
+	const handleCreateBlog = async (blog) => {
+		try {
+			const createdBlog = await blogService.create(blog)
+			blogDispatch({ type: 'CREATE_BLOG', payload: createdBlog })
+			setNotification({
+				type: 'SET_NOTIFICATION',
+				payload: {
+					type: 'success',
+					message: `a new blog ${createdBlog.title} by ${createdBlog.author} added`,
+				},
+			})
+			setTimeout(() => {
+				setNotification({
+					type: 'REMOVE_NOTIFICATION',
+				})
+			}, 5000)
+		} catch ({
+			response: {
+				data: { error },
+			},
+		}) {
+			setNotification({
+				type: 'SET_NOTIFICATION',
+				payload: {
+					type: 'error',
+					message: `an error ocurred: ${error}`,
+				},
+			})
+			setTimeout(() => {
+				setNotification({
+					type: 'REMOVE_NOTIFICATION',
+				})
+			}, 5000)
+		}
+	}
+
+	const onSubmit = async (event) => {
 		event.preventDefault()
-		onSubmit({
+		handleCreateBlog({
 			title,
 			author,
 			url,
@@ -21,7 +62,7 @@ const BlogForm = ({ onSubmit }) => {
 		<div>
 			<h2>Create new blog</h2>
 
-			<form onSubmit={handleCreate}>
+			<form onSubmit={onSubmit}>
 				<div style={{ marginBottom: 10 }}>
 					<label>
 						title
@@ -61,7 +102,7 @@ const BlogForm = ({ onSubmit }) => {
 					</label>
 				</div>
 
-				<Button style={{ marginTop: 10 }} text="create" type="submit">
+				<Button variant="contained" style={{ marginTop: 10 }} type="submit">
 					create
 				</Button>
 			</form>

@@ -1,52 +1,91 @@
 import { useState } from 'react'
-import Button from './Button'
+import loginService from '../services/loginService'
+import { useNotificationDispatch, useUserDispatch } from '../contexts/AppContext'
+import blogService from '../services/blogService'
+import userService from '../services/userService'
+import { useNavigate } from 'react-router-dom'
 
-const LoginForm = ({ onSubmit }) => {
+const LoginForm = () => {
 	const [username, setUsername] = useState('')
 	const [password, setPassword] = useState('')
+	const notificationDispatch = useNotificationDispatch()
+	const userDispatch = useUserDispatch()
+	const navigate = useNavigate()
 
-	const handleLogin = async (event) => {
+	const handleLogin = async (credentials) => {
+		try {
+			const user = await loginService.login(credentials)
+			window.localStorage.setItem('user', JSON.stringify(user))
+			userDispatch({ type: 'SET_USER', payload: user })
+			blogService.setToken(user.token)
+			userService.setToken(user.token)
+			navigate('/')
+		} catch (error) {
+			notificationDispatch({
+				type: 'SET_NOTIFICATION',
+				payload: {
+					type: 'error',
+					message: `an error ocurred: ${error.response.data.error}`,
+				},
+			})
+			setTimeout(() => {
+				notificationDispatch({
+					type: 'REMOVE_NOTIFICATION',
+				})
+			}, 5000)
+		}
+	}
+
+	const onSubmit = async (event) => {
 		event.preventDefault()
-		onSubmit({ username, password })
+		handleLogin({ username, password })
 		setUsername('')
 		setPassword('')
 	}
 
 	return (
-		<div>
-			<h2>Log in</h2>
+		<div className="container d-flex justify-content-center vh-100">
+			<div className="row w-50 d-flex align-content-center">
+				<form onSubmit={onSubmit}>
+					<h2>Log in</h2>
+					<div className="mb-3">
+						<label className="form-label" htmlFor="username">
+							username
+						</label>
 
-			<form onSubmit={handleLogin}>
-				<div style={{ marginBottom: 10 }}>
-					<label>
-						username
 						<input
-							style={{ marginLeft: 10 }}
+							id="username"
+							className="form-control"
 							type="text"
 							name="username"
 							value={username}
 							onChange={({ target }) => setUsername(target.value)}
 						/>
-					</label>
-				</div>
+					</div>
 
-				<div>
-					<label>
-						password
+					<div className="mb-3">
+						<label className="form-label" htmlFor="password">
+							password
+						</label>
 						<input
-							style={{ marginLeft: 10 }}
+							id="password"
+							className="form-control"
 							type="password"
 							name="password"
 							value={password}
 							onChange={({ target }) => setPassword(target.value)}
 						/>
-					</label>
-				</div>
+						<div id="passwordHelpBlock" className="form-text">
+							Your password must be 8-20 characters long, contain letters and numbers, and must not
+							contain spaces, special characters, or emoji.
+						</div>
+					</div>
 
-				<Button style={{ marginTop: 10 }} text="login" type="submit">
-					login
-				</Button>
-			</form>
+					<button className="btn btn-primary" type="submit">
+						login
+					</button>
+				</form>
+			</div>
 		</div>
 	)
 }

@@ -4,6 +4,7 @@ import { createContext } from 'react'
 import notificationReducer from '../reducers/notificationReducer'
 import blogReducer from '../reducers/blogReducer'
 import userReducer from '../reducers/userReducer'
+import usersReducer from '../reducers/usersReducer'
 
 const AppContext = createContext()
 
@@ -11,6 +12,7 @@ const AppContextProvider = (props) => {
 	const [notification, notificationDispatch] = useReducer(notificationReducer, null)
 	const [blogs, blogDispatch] = useReducer(blogReducer, [])
 	const [user, userDispatch] = useReducer(userReducer, null)
+	const [users, usersDispatch] = useReducer(usersReducer, [])
 
 	return (
 		<AppContext.Provider
@@ -19,6 +21,7 @@ const AppContextProvider = (props) => {
 					notification: [notification, notificationDispatch],
 					blogs: [blogs, blogDispatch],
 					user: [user, userDispatch],
+					users: [users, usersDispatch],
 				}
 			}
 		>
@@ -58,6 +61,17 @@ export const useUserValue = () => {
 export const useUserDispatch = () => {
 	const { user } = useContext(AppContext)
 	return user[1]
+}
+
+// USERS
+export const useUsersValue = () => {
+	const { users } = useContext(AppContext)
+	return users[0]
+}
+
+export const useUsersDispatch = () => {
+	const { users } = useContext(AppContext)
+	return users[1]
 }
 
 export default AppContextProvider

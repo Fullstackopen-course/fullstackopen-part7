@@ -1,19 +1,20 @@
-import Blog from './Blog'
+import { useBlogValue } from '../contexts/AppContext'
+import { Link } from 'react-router-dom'
 
-const BlogList = ({ blogs, handleUpdateBlog, handleDeleteBlog, username }) => {
+const BlogList = () => {
+	const blogs = useBlogValue()
+
 	return (
 		<div>
 			<h2>Blogs</h2>
 
-			{blogs.map((blog) => (
-				<Blog
-					key={blog.id}
-					blog={blog}
-					handleUpdateBlog={handleUpdateBlog}
-					handleDeleteBlog={handleDeleteBlog}
-					username={username}
-				/>
-			))}
+			<ul className="list-group list-group-flush">
+				{blogs.map((blog) => (
+					<li className="list-group-item" key={blog.id}>
+						<Link to={`/blogs/${blog.id}`}>{blog.title}</Link>
+					</li>
+				))}
+			</ul>
 		</div>
 	)
 }
